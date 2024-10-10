@@ -1,0 +1,22 @@
+[project]
+dynamic = ["version"]
+name = "pizza-cdn"
+description = "A cover art service meant for music players."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "apscheduler>=3.10.4",
+    "fastapi>=0.115.0",
+    "pyvips>=2.2.3",
+    "uvicorn[standard]>=0.31.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "pizza/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pizza"]
