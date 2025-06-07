@@ -1,39 +1,27 @@
-# Copyright (c) 2024 iiPython
+# Copyright (c) 2024-2025 iiPython
 
 # Modules
 import os
+import time
 import traceback
 from hashlib import md5
 from pathlib import Path
+from datetime import datetime, time as dtime
 
 from fastapi import FastAPI, UploadFile
-from fastapi.openapi.docs import get_redoc_html
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from pyvips import Image
 from pyvips.error import Error
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
-from .responses import generate_responses
-
 # Load domain from environment
 DOMAIN = os.environ["DOMAIN"]
 
 # Initialization
-__version__ = "0.6.2"
+__version__ = "0.7.0"
 
-app = FastAPI(
-    title = "iiPython's Cover Art Service",
-    version = __version__,
-    summary = "Public API for serving discord cover art.",
-    description = "This API provides a service for you to upload 100px x 100px covers and then returns a hotlinkable URL for sending to discord (for use in RPC).",
-    contact = {"name": "iiPython", "url": "https://iipython.dev", "email": "ben@iipython.dev"},
-    license_info = {"name": "MIT", "url": "https://opensource.org/license/MIT"},
-    docs_url = None,
-    redoc_url = None
-)
+app = FastAPI(openapi_url = None)
 app.add_middleware(
     CORSMiddleware,
     allow_origins = ["*"],
@@ -43,50 +31,76 @@ app.add_middleware(
 file_store = Path(__file__).parents[1] / "images"
 file_store.mkdir(exist_ok = True)
 
-# Handle docs
-@app.get("/docs", include_in_schema = False)
-async def render_redoc() -> HTMLResponse:
-    return get_redoc_html(
-        openapi_url = "/openapi.json",
-        title = "iiPython's Cover Art Service",
-        redoc_favicon_url = ""
-    )
+frontend = Path(__file__).parent / "frontend"
 
-# Handle generating stitch
-def generate_stitch() -> None:
-    image_list = sorted(file_store.iterdir())
-    if not image_list:
-        return
+# Statistics
+class Statistics:
+    def __init__(self) -> None:
 
-    tiles = []
-    for image in image_list:
-        if image.name == "stitch.webp":
-            continue
+        # Handle caching
+        self.last_built = 0
+        self.build()
 
-        tile = Image.new_from_file(image, access = "sequential")
-        if tile.bands == 3:  # type: ignore
-            tile = tile.bandjoin(255)  # type: ignore
+    def build(self) -> None:
+        self.last_built = time.time()
+        self.uploads = 0
 
-        tiles.append(tile.colourspace("srgb"))  # type: ignore
+        # Fetch todays information
+        today = datetime.today().date()
+        start = datetime.combine(today, dtime.min).timestamp()
+        end = datetime.combine(today, dtime.max).timestamp()
 
-    image = Image.arrayjoin(tiles, across = 20)  # type: ignore
-    image.write_to_file(file_store / "stitch.webp")
+        # Loop over what we already have
+        sizes, times = [], []
+        for file in file_store.iterdir():
+            stat = file.stat()
 
-generate_stitch()
+            # Handle data
+            sizes.append(stat.st_size)
+            times.append((file.name, stat.st_mtime))
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(generate_stitch, "interval", hours = 12)
-scheduler.start()
+            if start <= stat.st_mtime <= end:
+                self.uploads += 1
+
+        sorted_times = sorted(times, key = lambda _: _[1])
+        self.recent = [_[0] for _ in sorted_times[-6:]]
+
+        self.total = len(sizes)
+        self.average_size = sum(sizes) / self.total
+        self.time_since_last = time.time() - sorted_times[-1][1]
+
+        print("[+] Rebuilt statistic information!")
+
+stats = Statistics()
+
+# Handle frontend
+@app.get("/")
+async def render_index() -> FileResponse:
+    return FileResponse(frontend / "index.html")
+
+@app.get("/docs")
+async def render_docs() -> FileResponse:
+    return FileResponse(frontend / "docs.html")
 
 # Routing
-@app.get("/", name = "Index")
-async def render_index() -> FileResponse:
-    """Basic HTML page showing the latest stitch of all covers, regenerated every 12 hours."""
-    return FileResponse(Path(__file__).parent / "index.html")
+@app.get("/api/stats")
+async def api_get_stats() -> JSONResponse:
+    if time.time() > stats.last_built + 300:
+        stats.build()
 
-@app.post("/api/image", responses = generate_responses([200, 201, 400, 411, 500]))
+    return JSONResponse({
+        "code": 200,
+        "data": {
+            "uploads": stats.uploads,
+            "time_since_last": int(stats.time_since_last),
+            "total": stats.total,
+            "average_size": int(stats.average_size),
+            "recent": stats.recent
+        }
+    })
+
+@app.post("/api/image")
 async def upload_cover_image(file: UploadFile) -> JSONResponse:
-    """Upload an image and generate a public URL for it. Exif data will be removed on the server side."""
     if not file.size:
         return JSONResponse({"code": 411, "message": "You think I'll save a file without knowing how big it is?"}, status_code = 411)
 
@@ -121,7 +135,7 @@ async def upload_cover_image(file: UploadFile) -> JSONResponse:
         traceback.print_exc()
         return JSONResponse({"code": 500, "message": "Something went wrong, error has been logged."}, status_code = 500)
 
-@app.get("/{file}", response_model = None, responses = {})
+@app.get("/{file}", response_model = None)
 async def fetch_cover_image(file: str) -> FileResponse | JSONResponse:
     """Fetch a specific cover by image hash."""
     file_path = file_store / file

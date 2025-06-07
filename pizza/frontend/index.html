@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang = "en">
+    <head>
+        <meta charset = "utf-8" />
+        <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+        <meta name = "description" content = "Open-source cover art proxying API." />
+        <meta property = "og:title" content = "Pizza Microservice" />
+        <meta property = "og:description" content = "Open-source cover art proxying API." />
+        <meta name = "darkreader-lock">
+
+        <!-- CSS -->
+        <style>
+            * {
+                margin: 0px;
+                color: #fff;
+                font-family: monospace;
+            }
+            a {
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline dotted;
+            }
+            body {
+                background-color: #000;
+            }
+            h4 {
+                color: #000;
+                padding: 5px 10px;
+                width: fit-content;
+                background-color: #fff;
+            }
+            footer {
+                right: 20px;
+                bottom: 20px;
+                position: fixed;
+            }
+            main {
+                padding: 20px;
+                display: flex;
+                gap: 10px;
+                flex-direction: column;
+            }
+            div {
+                display: flex;
+                margin-left: 10px;
+                flex-direction: column;
+                margin-bottom: 10px;
+            }
+            img {
+                aspect-ratio: 1;
+                width: 50px;
+                border: 1px solid #fff;
+            }
+            .images {
+                gap: 10px;
+                flex-direction: row;
+            }
+        </style>
+
+        <title>Pizza API</title>
+    </head>
+    <body>
+        <main>
+            <h4>General Statistics</h4>
+            <div>
+                <span>Images uploaded today: <span id = "uploads"></span></span>
+                <span>Time since last upload: <span id = "time"></span> second(s)</span>
+                <span>Total images: <span id = "total"></span></span>
+                <span>Average filesize: <span id = "filesize"></span>kb</span>
+            </div>
+            <h4>Latest uploads</h4>
+            <div class = "images"></div>
+        </main>
+
+        <footer><a href = "/docs">API Documentation</a></footer>
+
+        <!-- JS -->
+        <script type = "module">
+            async function update() {
+                const result = (await (await fetch("/api/stats")).json()).data;
+                document.getElementById("uploads").innerText = result.uploads;
+                document.getElementById("time").innerText = result.time_since_last;
+                document.getElementById("total").innerText = result.total;
+                document.getElementById("filesize").innerText = result.average_size;
+
+                // Setup images
+                document.querySelector(".images").innerHTML = "";
+                for (const image of result.recent) {
+                    const element = document.createElement("img");
+                    element.src = `/${image}`;
+                    document.querySelector(".images").appendChild(element);
+                }
+            };
+
+            // Handle interval
+            setInterval(update, 300000);
+            update();
+        </script>
+    </body>
+</html>

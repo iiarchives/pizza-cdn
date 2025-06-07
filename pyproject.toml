@@ -5,8 +5,8 @@ description = "A cover art service meant for music players."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "apscheduler>=3.10.4",
     "fastapi>=0.115.0",
+    "python-multipart>=0.0.20",
     "pyvips>=2.2.3",
     "uvicorn[standard]>=0.31.1",
 ]

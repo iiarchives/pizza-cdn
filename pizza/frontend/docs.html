@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang = "en">
+    <head>
+        <meta charset = "utf-8" />
+        <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+        <meta name = "description" content = "Open-source cover art proxying API." />
+        <meta property = "og:title" content = "Pizza Microservice" />
+        <meta property = "og:description" content = "Open-source cover art proxying API." />
+        <meta name = "darkreader-lock">
+
+        <!-- CSS -->
+        <style>
+            * {
+                margin: 0px;
+                color: #fff;
+                font-family: monospace;
+            }
+            a {
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline dotted;
+            }
+            body {
+                background-color: #000;
+            }
+            h4 {
+                color: #000;
+                padding: 5px 10px;
+                width: fit-content;
+                background-color: #fff;
+            }
+            footer {
+                right: 20px;
+                bottom: 20px;
+                position: fixed;
+            }
+            main {
+                padding: 20px;
+                display: flex;
+                gap: 10px;
+                flex-direction: column;
+            }
+            div {
+                display: flex;
+                margin-left: 10px;
+                flex-direction: column;
+                margin-bottom: 10px;
+            }
+            img {
+                aspect-ratio: 1;
+                width: 50px;
+                border: 1px solid #fff;
+            }
+            .images {
+                gap: 10px;
+                flex-direction: row;
+            }
+        </style>
+
+        <title>Pizza API / Documentation</title>
+    </head>
+    <body>
+        <main>
+            <h4>/api/stats</h4>
+            <div>
+                <p>Return the most recent statistics about the API, as updated every 5 minutes.</p>
+                <ul>
+                    <li>HTTP 200 - OK.</li>
+                </ul>
+            </div>
+            <h4>/api/image</h4>
+            <div>
+                <p>Upload an image and generate a public URL for it. EXIF data will be removed on the server side.</p>
+                <ul>
+                    <li>HTTP 200 - Image was converted and saved.</li>
+                    <li>HTTP 201 - Image hash already existed and has been served instead.</li>
+                    <li>HTTP 400 - Image above max file size, image too dimensionally large, invalid image.</li>
+                    <li>HTTP 411 - No filesize was sent.</li>
+                    <li>HTTP 500 - Unexpected exception occured.</li>
+                </ul>
+            </div>
+            <h4>/{image}.webp</h4>
+            <div>
+                <p>Fetch a specific image by its hash, this is the main endpoint for serving data.</p>
+                <li>HTTP 200 - OK.</li>
+                <li>HTTP 401 - Stop fucking with my API.</li>
+                <li>HTTP 404 - File does not exist.</li>
+            </div>
+        </main>
+    </body>
+</html>
