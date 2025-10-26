@@ -19,7 +19,7 @@ from pyvips.error import Error
 DOMAIN = os.environ["DOMAIN"]
 
 # Initialization
-__version__ = "0.7.1"
+__version__ = "0.7.2"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -56,7 +56,7 @@ class Statistics:
             stat = file.stat()
 
             # Handle data
-            sizes.append(stat.st_size)
+            sizes.append(stat.st_size / 1024)
             times.append((file.name, stat.st_mtime))
 
             if start <= stat.st_mtime <= end:
@@ -66,7 +66,7 @@ class Statistics:
         self.recent = [_[0] for _ in sorted_times[-6:]]
 
         self.total = len(sizes)
-        self.average_size = sum(sizes) / self.total
+        self.average_size = round(sum(sizes) / self.total, 2)
         self.time_since_last = time.time() - sorted_times[-1][1]
 
         print("[+] Rebuilt statistic information!")
