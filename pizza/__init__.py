@@ -19,7 +19,7 @@ from pyvips.error import Error
 DOMAIN = os.environ["DOMAIN"]
 
 # Initialization
-__version__ = "0.7.2"
+__version__ = "0.8.0"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -112,18 +112,36 @@ async def upload_cover_image(file: UploadFile) -> JSONResponse:
 
         # Load image into VIPS
         image: Image = Image.new_from_buffer(image_bytes, "")  # type: ignore
-        if (image.width > 100 or image.height > 100):  # type: ignore
+
+        width: int = image.width  # type: ignore
+        height: int = image.height  # type: ignore
+        if (width > 100 or height > 100):
             return JSONResponse({"code": 400, "message": "Image exceeds maximum dimensions (100px x 100px)."}, status_code = 400)
+
+        # Strip out exif data
+        for field in image.get_fields():
+            image.remove(field)
+
+        # Crop image to 1:1 aspect ratio
+        crop_aspect = min(width, height)
+        image = image.crop(
+            max((width - crop_aspect) // 2, 0),
+            max((height - crop_aspect) // 2, 0),
+            crop_aspect,  # type: ignore
+            crop_aspect
+        )  # type: ignore
+
+        # Resize to 100x100
+        if image.width != 100 or image.height != 100:
+            image = image.resize(100 / width, vscale = 100 / height)  # type: ignore
+
+        # Update bytes to match our PROCESSED image
+        image_bytes: bytes = image.write_to_buffer(".webp")  # type: ignore
 
         # Process hash for storage
         file_path = (file_store / (md5(image_bytes).hexdigest())).with_suffix(".webp")
         if not file_path.is_file():
-
-            # Strip out exif data
-            for field in image.get_fields():
-                image.remove(field)
-
-            image.write_to_file(file_path)
+            file_path.write_bytes(image_bytes)
             return JSONResponse({"code": 201, "url": f"https://{DOMAIN}/{file_path.name}"}, status_code = 201)
 
         return JSONResponse({"code": 200, "url": f"https://{DOMAIN}/{file_path.name}"})
