@@ -19,7 +19,7 @@ from pyvips.error import Error
 DOMAIN = os.environ["DOMAIN"]
 
 # Initialization
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
