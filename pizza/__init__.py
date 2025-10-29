@@ -6,10 +6,10 @@ import time
 import traceback
 from hashlib import md5
 from pathlib import Path
-from datetime import datetime, time as dtime
 
 from fastapi import FastAPI, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from pyvips import Image
@@ -17,9 +17,14 @@ from pyvips.error import Error
 
 # Load domain from environment
 DOMAIN = os.environ["DOMAIN"]
+STATFILE = Path(os.environ.get("STATFILE", "stats.pizza"))
+if not STATFILE.is_file():
+    STATFILE.touch()
+
+TTL = 3600
 
 # Initialization
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -28,81 +33,72 @@ app.add_middleware(
     allow_methods = ["GET", "POST"]
 )
 
-file_store = Path(__file__).parents[1] / "images"
-file_store.mkdir(exist_ok = True)
-
-frontend = Path(__file__).parent / "frontend"
-
-# Statistics
-class Statistics:
+# Handle uploads
+class ImageStore:
     def __init__(self) -> None:
+        self.images: dict[str, dict] = {}
+        self.last_check: float = 0.0
 
-        # Handle caching
-        self.last_built = 0
-        self.build()
+        # Handle stats
+        self.stats = {"served": 0, "served_total": int(STATFILE.read_text() or 0), "last_served": None, "recent_images": []}
 
-    def build(self) -> None:
-        self.last_built = time.time()
-        self.uploads = 0
+    def push_image(self, image_bytes: bytes) -> str:
+        image_hash = md5(image_bytes).hexdigest()
+        if image_hash not in self.images:
+            print(f"[+] New image processed! MD5: {image_hash} TTL: {TTL}")
 
-        # Fetch todays information
-        today = datetime.today().date()
-        start = datetime.combine(today, dtime.min).timestamp()
-        end = datetime.combine(today, dtime.max).timestamp()
+            self.images[image_hash] = {"image": image_bytes, "time": time.time()}
 
-        # Loop over what we already have
-        sizes, times = [], []
-        for file in file_store.iterdir():
-            stat = file.stat()
+        # Update stats
+        self.stats["served"] += 1
+        self.stats["served_total"] += 1
+        self.stats["last_served"] = time.time()
 
-            # Handle data
-            sizes.append(stat.st_size / 1024)
-            times.append((file.name, stat.st_mtime))
+        if image_hash not in self.stats["recent_images"]:
+            self.stats["recent_images"] = self.stats["recent_images"][:19] + [image_hash]
 
-            if start <= stat.st_mtime <= end:
-                self.uploads += 1
+        STATFILE.write_text(str(self.stats["served_total"]))
 
-        sorted_times = sorted(times, key = lambda _: _[1])
-        self.recent = [_[0] for _ in sorted_times[-6:]]
+        # Update hash access time
+        self.images[image_hash]["time"] = time.time()
+        return image_hash
 
-        self.total = len(sizes)
-        self.average_size = round(sum(sizes) / self.total, 2)
-        self.time_since_last = time.time() - sorted_times[-1][1]
+    def fetch_image(self, image_hash: str) -> bytes | None:
+        if image_hash in self.images:
+            return self.images[image_hash]["image"]
 
-        print("[+] Rebuilt statistic information!")
+        return None
 
-stats = Statistics()
+    def build_stats(self) -> dict:
+        return self.stats
 
-# Handle frontend
-@app.get("/")
-async def render_index() -> FileResponse:
-    return FileResponse(frontend / "index.html")
+    def purge_old(self) -> None:
+        if time.time() < self.last_check + 300:
+            return
 
-@app.get("/docs")
-async def render_docs() -> FileResponse:
-    return FileResponse(frontend / "docs.html")
+        print(f"[/] Image purge running at {round(time.time())}")
+        for image_hash, image_data in self.images.values():
+            if time.time() - image_data["time"] > TTL:
+                print(f"[-] {image_hash} purged due to expiration")
+                del self.images[image_hash]
+
+        self.last_check = time.time()
+
+store = ImageStore()
 
 # Routing
 @app.get("/api/stats")
 async def api_get_stats() -> JSONResponse:
-    if time.time() > stats.last_built + 300:
-        stats.build()
-
+    store.purge_old()
     return JSONResponse({
         "code": 200,
-        "data": {
-            "uploads": stats.uploads,
-            "time_since_last": int(stats.time_since_last),
-            "total": stats.total,
-            "average_size": int(stats.average_size),
-            "recent": stats.recent
-        }
+        "data": store.build_stats()
     })
 
 @app.post("/api/image")
 async def upload_cover_image(file: UploadFile) -> JSONResponse:
     if not file.size:
-        return JSONResponse({"code": 411, "message": "You think I'll save a file without knowing how big it is?"}, status_code = 411)
+        return JSONResponse({"code": 411, "message": "You think I'll process a file without knowing how big it is?"}, status_code = 411)
 
     if file.size > 100000:
         return JSONResponse({"code": 400, "message": "Image is above max size (1 megabyte)."}, status_code = 400)
@@ -137,14 +133,7 @@ async def upload_cover_image(file: UploadFile) -> JSONResponse:
 
         # Update bytes to match our PROCESSED image
         image_bytes: bytes = image.write_to_buffer(".webp")  # type: ignore
-
-        # Process hash for storage
-        file_path = (file_store / (md5(image_bytes).hexdigest())).with_suffix(".webp")
-        if not file_path.is_file():
-            file_path.write_bytes(image_bytes)
-            return JSONResponse({"code": 201, "url": f"https://{DOMAIN}/{file_path.name}"}, status_code = 201)
-
-        return JSONResponse({"code": 200, "url": f"https://{DOMAIN}/{file_path.name}"})
+        return JSONResponse({"code": 200, "url": f"https://{DOMAIN}/{store.push_image(image_bytes)}"})
 
     except Error:
         return JSONResponse({"code": 400, "message": "Failed to decode client image."}, status_code = 400)
@@ -153,14 +142,14 @@ async def upload_cover_image(file: UploadFile) -> JSONResponse:
         traceback.print_exc()
         return JSONResponse({"code": 500, "message": "Something went wrong, error has been logged."}, status_code = 500)
 
-@app.get("/{file}", response_model = None)
-async def fetch_cover_image(file: str) -> FileResponse | JSONResponse:
+@app.get("/{file}.webp", response_model = None)
+async def fetch_cover_image(file: str) -> Response | JSONResponse:
     """Fetch a specific cover by image hash."""
-    file_path = file_store / file
-    if not file_path.relative_to(file_store):
-        return JSONResponse({"code": 401, "message": "Stop fucking with my API."}, status_code = 401)
+    image_bytes = store.fetch_image(file)
+    if image_bytes is not None:
+        return Response(image_bytes, media_type = "image/webp")
 
-    if not file_path.is_file():
-        return JSONResponse({"code": 404, "message": "Specified file does not exist."}, status_code = 400)
+    return JSONResponse({"code": 404, "message": "Specified image does not exist."}, status_code = 400)
 
-    return FileResponse(file_path)
+# Handle frontend
+app.mount("/", StaticFiles(directory = Path(__file__).parent / "frontend", html = True))

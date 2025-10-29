@@ -53,8 +53,7 @@
             <div>
                 <p>Upload an image and generate a public URL for it. EXIF data will be removed on the server side.</p>
                 <ul>
-                    <li>HTTP 200 - Image hash already existed and has been served instead.</li>
-                    <li>HTTP 201 - Image was converted and saved.</li>
+                    <li>HTTP 200 - Image has been processed.</li>
                     <li>HTTP 400 - Image above max file size, image too dimensionally large, invalid image.</li>
                     <li>HTTP 411 - No filesize was sent.</li>
                     <li>HTTP 500 - Unexpected exception occured.</li>
@@ -65,8 +64,7 @@
                 <p>Fetch a specific image by its hash, this is the main endpoint for serving data.</p>
                 <ul>
                     <li>HTTP 200 - OK.</li>
-                    <li>HTTP 401 - Stop fucking with my API.</li>
-                    <li>HTTP 404 - File does not exist.</li>
+                    <li>HTTP 404 - Image does not exist.</li>
                 </ul>
             </div>
         </main>

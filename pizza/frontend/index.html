@@ -64,12 +64,11 @@
         <main>
             <h4>General statistics</h4>
             <div>
-                <span>Images uploaded today: <span id = "uploads"></span></span>
-                <span>Time since last upload: <span id = "time"></span> second(s)</span>
-                <span>Total images: <span id = "total"></span></span>
-                <span>Average filesize: <span id = "filesize"></span>kb</span>
+                <span>Images served (session): <span id = "served-session"></span></span>
+                <span>Images served (total): <span id = "served-total"></span></span>
+                <span>Time since last: <span id = "time"></span> second(s)</span>
             </div>
-            <h4>Latest uploads</h4>
+            <h4>Latest images</h4>
             <div class = "images"></div>
         </main>
 
@@ -79,22 +78,21 @@
         <script type = "module">
             async function update() {
                 const result = (await (await fetch("/api/stats")).json()).data;
-                document.getElementById("uploads").innerText = result.uploads;
-                document.getElementById("time").innerText = result.time_since_last;
-                document.getElementById("total").innerText = result.total;
-                document.getElementById("filesize").innerText = result.average_size;
+                document.getElementById("served-session").innerText = result.served;
+                document.getElementById("served-total").innerText = result.served_total;
+                document.getElementById("time").innerText = Math.round(result.last_served ? (Date.now() / 1000) - result.last_served : "N/A");
 
                 // Setup images
                 document.querySelector(".images").innerHTML = "";
-                for (const image of result.recent) {
+                for (const image of result.recent_images) {
                     const element = document.createElement("img");
-                    element.src = `/${image}`;
+                    element.src = `/${image}.webp`;
                     document.querySelector(".images").appendChild(element);
                 }
             };
 
             // Handle interval
-            setInterval(update, 300000);
+            setInterval(update, 30 * 1000);
             update();
         </script>
     </body>
