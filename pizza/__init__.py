@@ -24,7 +24,7 @@ if not STATFILE.is_file():
 TTL = 3600
 
 # Initialization
-__version__ = "0.9.4"
+__version__ = "0.10.0"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -133,7 +133,7 @@ async def upload_cover_image(file: UploadFile) -> JSONResponse:
 
         # Update bytes to match our PROCESSED image
         image_bytes: bytes = image.write_to_buffer(".webp")  # type: ignore
-        return JSONResponse({"code": 200, "url": f"https://{DOMAIN}/{store.push_image(image_bytes)}"})
+        return JSONResponse({"code": 200, "url": f"https://{DOMAIN}/{store.push_image(image_bytes)}.webp"})
 
     except Error:
         return JSONResponse({"code": 400, "message": "Failed to decode client image."}, status_code = 400)
