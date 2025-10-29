@@ -24,7 +24,7 @@ if not STATFILE.is_file():
 TTL = 3600
 
 # Initialization
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -40,7 +40,7 @@ class ImageStore:
         self.last_check: float = 0.0
 
         # Handle stats
-        self.stats = {"served": 0, "served_total": int(STATFILE.read_text() or 0), "last_served": None, "recent_images": []}
+        self.stats = {"served": 0, "served_total": int(STATFILE.read_text() or 0), "last_served": None, "recent_images": [], "version": __version__}
 
     def push_image(self, image_bytes: bytes) -> str:
         image_hash = md5(image_bytes).hexdigest()
@@ -77,7 +77,7 @@ class ImageStore:
             return
 
         print(f"[/] Image purge running at {round(time.time())}")
-        for image_hash, image_data in self.images.values():
+        for image_hash, image_data in self.images.items():
             if time.time() - image_data["time"] > TTL:
                 print(f"[-] {image_hash} purged due to expiration")
                 del self.images[image_hash]

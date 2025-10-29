@@ -67,6 +67,7 @@
                 <span>Images served (session): <span id = "served-session"></span></span>
                 <span>Images served (total): <span id = "served-total"></span></span>
                 <span>Time since last: <span id = "time"></span> second(s)</span>
+                <span>Pizza version: <span id = "version"></span></span>
             </div>
             <h4>Latest images</h4>
             <div class = "images"></div>
@@ -81,6 +82,7 @@
                 document.getElementById("served-session").innerText = result.served;
                 document.getElementById("served-total").innerText = result.served_total;
                 document.getElementById("time").innerText = Math.round(result.last_served ? (Date.now() / 1000) - result.last_served : "N/A");
+                document.getElementById("version").innerText = result.version;
 
                 // Setup images
                 document.querySelector(".images").innerHTML = "";
