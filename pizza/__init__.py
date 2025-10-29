@@ -24,7 +24,7 @@ if not STATFILE.is_file():
 TTL = 3600
 
 # Initialization
-__version__ = "0.10.1"
+__version__ = "0.10.2"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -55,7 +55,7 @@ class ImageStore:
         self.stats["last_served"] = time.time()
 
         if image_hash not in self.stats["recent_images"]:
-            self.stats["recent_images"] = self.stats["recent_images"][:19] + [image_hash]
+            self.stats["recent_images"] = self.stats["recent_images"][1:20] + [image_hash]
 
         STATFILE.write_text(str(self.stats["served_total"]))
 
