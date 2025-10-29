@@ -24,7 +24,7 @@ if not STATFILE.is_file():
 TTL = 3600
 
 # Initialization
-__version__ = "0.9.3"
+__version__ = "0.9.4"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(

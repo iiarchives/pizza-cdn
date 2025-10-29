@@ -81,7 +81,7 @@
                 const result = (await (await fetch("/api/stats")).json()).data;
                 document.getElementById("served-session").innerText = result.served;
                 document.getElementById("served-total").innerText = result.served_total;
-                document.getElementById("time").innerText = Math.round(result.last_served ? (Date.now() / 1000) - result.last_served : "N/A");
+                document.getElementById("time").innerText = result.last_served ? Math.round((Date.now() / 1000) - result.last_served) : "N/A";
                 document.getElementById("version").innerText = result.version;
 
                 // Setup images
