@@ -71,7 +71,7 @@
             <div>
                 <span>Images served (session): <span id = "served-session"></span></span>
                 <span>Images served (total): <span id = "served-total"></span></span>
-                <span>Time since last: <span id = "time"></span> second(s)</span>
+                <span>Time since last: <span id = "time"></span></span>
                 <span>Pizza version: <span id = "version"></span></span>
             </div>
             <h4>Latest images</h4>
@@ -89,7 +89,7 @@
                 const result = (await (await fetch("/api/stats")).json()).data;
                 document.getElementById("served-session").innerText = result.served;
                 document.getElementById("served-total").innerText = result.served_total;
-                document.getElementById("time").innerText = result.last_served ? Math.round((Date.now() / 1000) - result.last_served) : "N/A";
+                document.getElementById("time").innerText = result.last_served ? `${Math.round((Date.now() / 1000) - result.last_served)} seconds` : "N/A";
                 document.getElementById("version").innerText = result.version;
 
                 // Setup images
