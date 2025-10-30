@@ -24,7 +24,7 @@ if not STATFILE.is_file():
 TTL = 3600
 
 # Initialization
-__version__ = "0.10.3"
+__version__ = "0.11.0"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -69,9 +69,6 @@ class ImageStore:
 
         return None
 
-    def build_stats(self) -> dict:
-        return self.stats
-
     def purge_old(self) -> None:
         if time.time() < self.last_check + 300:
             return
@@ -92,7 +89,7 @@ async def api_get_stats() -> JSONResponse:
     store.purge_old()
     return JSONResponse({
         "code": 200,
-        "data": store.build_stats()
+        "data": store.stats
     })
 
 @app.post("/api/image")
