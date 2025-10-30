@@ -1,0 +1,65 @@
+* {
+    margin: 0px;
+    color: #fff;
+    font-family: monospace;
+
+    /* Makes the page look like ~120% zoom, better imo */
+    font-size: 16px;
+}
+
+/* Link decorations */
+a {
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline dotted;
+    }
+}
+body {
+    background-color: #000;
+}
+h4 {
+    color: #000;
+    padding: 5px 10px;
+    width: fit-content;
+    background-color: #fff;
+}
+footer {
+    position: absolute;
+    padding: 10px;
+    bottom: 0px;
+    left: 0px;
+    width: calc(100% - 20px);
+    display: flex;
+    justify-content: space-between;
+
+    a {
+        width: fit-content;
+        margin-left: auto;
+    }
+}
+main {
+    padding: 20px;
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+
+    div {
+        margin-bottom: 10px;
+    }
+}
+div {
+    display: flex;
+    margin-left: 10px;
+    flex-direction: column;
+}
+img {
+    aspect-ratio: 1;
+    width: 70px;
+    border: 1px solid #fff;
+}
+.images {
+    gap: 10px;
+    flex-wrap: wrap;
+    flex-direction: row;
+}
