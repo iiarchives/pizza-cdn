@@ -43,16 +43,16 @@ class ImageStore:
         self.stats = {"served": 0, "served_total": int(STATFILE.read_text() or 0), "last_served": None, "recent_images": [], "version": __version__}
 
     def push_image(self, image_bytes: bytes) -> str:
-        image_hash = md5(image_bytes).hexdigest()
+        timestamp, image_hash = time.time(), md5(image_bytes).hexdigest()
         if image_hash not in self.images:
             print(f"[+] New image processed! MD5: {image_hash} TTL: {TTL}")
 
-            self.images[image_hash] = {"image": image_bytes, "time": time.time()}
+            self.images[image_hash] = {"image": image_bytes, "time": timestamp}
 
         # Update stats
         self.stats["served"] += 1
         self.stats["served_total"] += 1
-        self.stats["last_served"] = time.time()
+        self.stats["last_served"] = timestamp
 
         if image_hash not in self.stats["recent_images"]:
             self.stats["recent_images"] = ([image_hash] + self.stats["recent_images"])[:20]
@@ -60,14 +60,11 @@ class ImageStore:
         STATFILE.write_text(str(self.stats["served_total"]))
 
         # Update hash access time
-        self.images[image_hash]["time"] = time.time()
+        self.images[image_hash]["time"] = timestamp
         return image_hash
 
     def fetch_image(self, image_hash: str) -> bytes | None:
-        if image_hash in self.images:
-            return self.images[image_hash]["image"]
-
-        return None
+        return self.images[image_hash]["image"] if image_hash in self.images else None
 
     def purge_old(self) -> None:
         if time.time() < self.last_check + 300:
