@@ -14,6 +14,7 @@
                 margin: 0px;
                 color: #fff;
                 font-family: monospace;
+                font-size: 16px;
             }
             a {
                 text-decoration: none;
@@ -31,12 +32,17 @@
                 background-color: #fff;
             }
             footer {
-                right: 20px;
-                bottom: 20px;
-                position: fixed;
+                position: absolute;
+                padding: 10px;
+                bottom: 0px;
+                left: 0px;
+                width: calc(100% - 20px);
                 display: flex;
-                flex-direction: column;
-                align-items: end;
+                justify-content: space-between;
+
+                a {
+                    text-align: right;
+                }
             }
             main {
                 padding: 20px;
@@ -69,9 +75,9 @@
         <main>
             <h4>General statistics</h4>
             <div>
-                <span>Images served (session): <span id = "served-session"></span></span>
-                <span>Images served (total): <span id = "served-total"></span></span>
-                <span>Time since last: <span id = "time"></span></span>
+                <span>Images served (session): <span id = "served"></span></span>
+                <span>Images served (total): <span id = "served_total"></span></span>
+                <span>Time since last: <span id = "last_served"></span></span>
                 <span>Pizza version: <span id = "version"></span></span>
             </div>
             <h4>Latest images</h4>
@@ -79,25 +85,33 @@
         </main>
 
         <footer>
-            <a href = "https://github.com/iiarchives/pizza-cdn">Github</a>
-            <a href = "/docs.html">API Documentation</a>
+            <div>
+                <span>Made by <a href = "https://iipython.dev" style = "color: #2db45a;">iiPython</a>.</span>
+                <span>Bug tested by <a href = "https://github.com/DmmDGM" title = ":3" style = "color: #afcfef;">DmmD GM</a> and <a href = "https://pyxfluff.dev" style = "color: #a48aff;">Pyx</a>.</span>
+            </div>
+            <div>
+                <a href = "https://github.com/iiarchives/pizza-cdn">GitHub</a>
+                <a href = "/docs.html">API Documentation</a>
+            </div>
         </footer>
 
         <!-- JS -->
         <script type = "module">
             async function update() {
                 const result = (await (await fetch("/api/stats")).json()).data;
-                document.getElementById("served-session").innerText = result.served;
-                document.getElementById("served-total").innerText = result.served_total;
-                document.getElementById("time").innerText = result.last_served ? `${Math.round((Date.now() / 1000) - result.last_served)} seconds` : "N/A";
-                document.getElementById("version").innerText = result.version;
+                for (const key in result) {
+                    if (key === "recent_images") continue;
+                    document.getElementById(key).innerText = key === "last_served" ? (result[key] ? `${Math.round((Date.now() / 1000) - result[key])} seconds` : "N/A") : result[key];
+                }
 
                 // Setup images
-                document.querySelector(".images").innerHTML = "";
+                const imageElement = document.querySelector(".images");
+                imageElement.innerHTML = result.recent_images.length ? "" : "Nothing served yet.";
+
                 for (const image of result.recent_images) {
                     const element = document.createElement("img");
                     element.src = `/${image}.webp`;
-                    document.querySelector(".images").appendChild(element);
+                    imageElement.appendChild(element);
                 }
             };
 
