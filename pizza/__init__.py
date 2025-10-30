@@ -146,7 +146,7 @@ async def fetch_cover_image(file: str) -> Response | JSONResponse:
     if image_bytes is not None:
         return Response(image_bytes, media_type = "image/webp")
 
-    return JSONResponse({"code": 404, "message": "Specified image does not exist."}, status_code = 400)
+    return JSONResponse({"code": 404, "message": "Specified image does not exist."}, status_code = 404)
 
 # Handle frontend
 app.mount("/", StaticFiles(directory = Path(__file__).parent / "frontend", html = True))
