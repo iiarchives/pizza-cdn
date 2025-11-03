@@ -24,7 +24,7 @@ if not STATFILE.is_file():
 TTL = 3600
 
 # Initialization
-__version__ = "0.11.1"
+__version__ = "0.11.2"
 
 app = FastAPI(openapi_url = None)
 app.add_middleware(
@@ -73,8 +73,11 @@ class ImageStore:
         print(f"[/] Image purge running at {round(time.time())}")
         for image_hash in list(self.images.keys()).copy():
             if time.time() - self.images[image_hash]["time"] > TTL:
-                print(f"[-] {image_hash} purged due to expiration")
+                if image_hash in self.stats["recent_images"]:
+                    self.stats["recent_images"].remove(image_hash)
+
                 del self.images[image_hash]
+                print(f"[-] {image_hash} purged due to expiration")
 
         self.last_check = time.time()
 
